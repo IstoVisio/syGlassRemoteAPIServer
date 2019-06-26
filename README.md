@@ -6,7 +6,12 @@ current dependencies:
 
 pip install fastapi
 pip install uvicorn
+pip install email_validator
+pip install requests
 
+or
+
+pip3 install fastapi[all]
 
 Run the server with:
 
