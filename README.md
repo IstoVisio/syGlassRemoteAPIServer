@@ -8,10 +8,9 @@ pip install fastapi
 pip install uvicorn
 pip install email_validator
 pip install requests
+pip install numpy
+pip install -i https://test.pypi.org/simple/ syGlass
 
-or
-
-pip3 install fastapi[all]
 
 Run the server with:
 

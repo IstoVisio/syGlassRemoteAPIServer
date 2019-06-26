@@ -12,8 +12,7 @@ import requests
 from datetime import datetime
 from time import gmtime, strftime, sleep
 import time
-import ttk
-import Tkinter as tk
+import tkinter as tk
 
 #-----------------------------------------------------------------------------------------
 
@@ -55,7 +54,7 @@ def send_request(request_id, VR_project_request):
 	print("Your VR project request list: ")
 	print(VR_project_request)
 	#-- close gui opon request submit --
-	win.quit()
+	#win.quit()
 
 	# #-- write request to api --
 	converted_to_json = json.dumps(VR_project_request)
@@ -82,26 +81,26 @@ if __name__ == '__main__':
 	win.title("VR Mesh Project Request")
 
 	#-- Add text box Entry form --
-	ttk.Label(win, text="Username").grid(column=0, row=0)
+	tk.Label(win, text="Username").grid(column=0, row=0)
 	user = tk.StringVar(value="username")
 	user_entered = tk.Entry(win, width=0, textvariable=user)
 	user_entered.grid(column=0, row=1, columnspan=1)
 
 	#-- Add text box Entry form --
-	ttk.Label(win, text="Add BodyID To List").grid(column=2, row=0)
+	tk.Label(win, text="Add BodyID To List").grid(column=2, row=0)
 	bodyID = tk.IntVar(value="bodyID")
 	bodyID_entered = tk.Entry(win, width=20, textvariable=bodyID)
 	bodyID_entered.grid(column=2, row=1, columnspan=1)
 
-	btn = ttk.Button(text = 'Add to List', command = add_body_to_list)
+	btn = tk.Button(text = 'Add to List', command = add_body_to_list)
 	btn.grid(column=2, row=6)
 
 	#-- adding a button --
-	action = ttk.Button(win, text="Submit Request", command=get_request_data)
+	action = tk.Button(win, text="Submit Request", command=get_request_data)
 	action.grid(column=0, row=6)
 
 	#-- adding a button --
-	action = ttk.Button(win, text="Quit", command=win.quit)
+	action = tk.Button(win, text="Quit", command=win.quit)
 	action.grid(column=1, row=8)
 
 	#-- start gui --
