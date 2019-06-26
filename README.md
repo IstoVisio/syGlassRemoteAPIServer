@@ -1,6 +1,7 @@
 "# syGlassRemoteAPIServer" 
 
 python > 3.6
+64 bit only!
 
 current dependencies:
 
