@@ -22,10 +22,6 @@ project = {
 	"body_list" : [12,34,56]
 	}
 
-sup = {
-	"something" : "ok"
-}
-
 converted_to_json = json.dumps(project)
 print(converted_to_json)
 url_to_write_to = "http://127.0.0.1:8000/request/"

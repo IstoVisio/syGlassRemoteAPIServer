@@ -1,25 +1,38 @@
 # import sys
-from neuclease.dvid import *
-from vol2mesh import Mesh
+#from neuclease.dvid import *
+#from vol2mesh import Mesh
 
 from multiprocessing import Process
 
+import json
+
 import tkinter as tk
 from tkinter import ttk
+from datetime import datetime
+from time import gmtime, strftime, sleep
+import time
+
+import requests
 
 #-----------------------------------------------------------------------------------------------------
 
-def make_meshes(bodyID):
-	print(bodyID)
-	# tar_bytes = fetch_tarfile(*master_meshes, 1137499592)
-	tar_bytes = fetch_tarfile(*master_meshes, bodyID)
+#def make_meshes(bodyID):
+	#print(bodyID)
+	## tar_bytes = fetch_tarfile(*master_meshes, 1137499592)
+	#tar_bytes = fetch_tarfile(*master_meshes, bodyID)
+#
+	#mesh = Mesh.from_tarfile(tar_bytes)
+#
+	#mesh.simplify(0.1)
+#
+	## mesh.serialize('/groups/flyem/data/neacee_data/VR_meshes_03-03-2019/'+bodyID+'-decimated.obj')
+	#mesh.serialize('/groups/flyem/data/neacee_data/VR_meshes_06-26-2019/'+bodyID+'-decimated.obj')
 
-	mesh = Mesh.from_tarfile(tar_bytes)
 
-	mesh.simplify(0.1)
-
-	# mesh.serialize('/groups/flyem/data/neacee_data/VR_meshes_03-03-2019/'+bodyID+'-decimated.obj')
-	mesh.serialize('/groups/flyem/data/neacee_data/VR_meshes_06-26-2019/'+bodyID+'-decimated.obj')
+def timestamp_to_epoch(timestamp):
+    timestamp_format = '%Y-%m-%d %H:%M:%S'
+    epoch = int(time.mktime(time.strptime(timestamp, timestamp_format)))
+    return epoch
 
 #-----------------------------------------------------------------------------------------------------
 
@@ -75,13 +88,19 @@ if __name__ == '__main__':
 
 	#-- todo action --
 	ttk.Label(win, text="Body List File").grid(column=0, row=3)
-	input_file = tk.StringVar(value ="mesh_list_02-27-2019.txt")
+	input_file = tk.StringVar(value =" ")
 	input_file_entered = ttk.Entry(win, width=60, textvariable=input_file)
 	input_file_entered.grid(column=0, row=4, columnspan=4)
 
+	#-- Add text box Entry form --
+	tk.Label(win, text="Username").grid(column=0, row=6)
+	user = tk.StringVar(value=" ")
+	user_entered = tk.Entry(win, width=60, textvariable=user)
+	user_entered.grid(column=0, row=7, columnspan=4)
+
 	#-- adding a button --
 	action = ttk.Button(win, text="Submit", command=win.quit)
-	action.grid(column=2, row=6)
+	action.grid(column=2, row=8)
 
 	# win.configure(background='blue')
 
@@ -90,32 +109,50 @@ if __name__ == '__main__':
 	#-- End GUI Things --
 	#-----------------------------------------------------------------------------------------
 
-	dvid = server.get()+":"+port.get()
-	segmentation = segmentation.get()
-	uuid = uuid.get()
-	file = input_file.get()
-	# bodyID = input_bodyID.get()
-
-	
-
-	master = (dvid, uuid)
-	master_seg = (*master, segmentation)
-	master_meshes = (*master, 'segmentation_sv_meshes')
+	now_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+	epoch = timestamp_to_epoch(now_time)
 
 	#-- reads file with bodyIDs, appends to list --
 
-	listfile = open(file).readlines()
-	for line in listfile:
-		bodyID = line.strip()
-		body_list.append(bodyID)
+	body_list = input_file.get().strip().split(" ")
 
 	print(body_list)
 
-	# -- multiprocess --
-	for body in body_list:
-		proc = Process(target=make_meshes, args=(body,))
-		procs.append(proc)
-		proc.start()
 
-	for proc in procs:
-		proc.join()
+	#class meshAndDVIDRequest(BaseModel):
+	#requestID: str
+	#user: str
+	#time : str
+	#epoch : int
+	#body_list : List[int] = []
+	#dvid : str
+	#port : int
+	#uuid : str
+	#segmentation : strftime
+
+	project = {
+		"user": user.get(),
+		"time" : now_time,
+		"epoch" : epoch,
+		"body_list" : body_list,
+		"dvid" : server.get(),
+		"port" : port.get(),
+		"uuid" : uuid.get(),
+		"segmentation" : segmentation.get()
+
+	}
+
+converted_to_json = json.dumps(project)
+print(converted_to_json)
+url_to_write_to = "http://127.0.0.1:8000/dvidRequest/"
+requests.post(url_to_write_to, json=json.loads(converted_to_json))
+
+
+	# -- multiprocess --
+	#for body in body_list:
+		#proc = Process(target=make_meshes, args=(body,))
+		#procs.append(proc)
+		#proc.start()
+#
+	#for proc in procs:
+		#proc.join()

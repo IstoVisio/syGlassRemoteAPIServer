@@ -1,6 +1,7 @@
-"# syGlassRemoteAPIServer" 
+# syGlassRemoteAPIServer
 
 python > 3.6
+
 64 bit only!
 
 current dependencies:
@@ -12,6 +13,8 @@ pip install requests
 pip install numpy
 pip install -i https://test.pypi.org/simple/ syGlass
 
+conda install -c flyem-forge vol2mesh
+conda install -c flyem-forge -c conda-forge neuclease
 
 Run the server with:
 
