@@ -30,7 +30,7 @@ import requests
 
 
 def timestamp_to_epoch(timestamp):
-    timestamp_format = '%Y-%m-%d %H:%M:%S'
+    timestamp_format = '%Y-%m-%d_%H_%M_%S'
     epoch = int(time.mktime(time.strptime(timestamp, timestamp_format)))
     return epoch
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 	#-- End GUI Things --
 	#-----------------------------------------------------------------------------------------
 
-	now_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+	now_time = datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
 	epoch = timestamp_to_epoch(now_time)
 
 	#-- reads file with bodyIDs, appends to list --

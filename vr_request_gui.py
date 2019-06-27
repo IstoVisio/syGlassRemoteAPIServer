@@ -28,7 +28,7 @@ def get_request_data():
 	if len(request_list) < 1:
 		return(request_list)
 	else:
-		now_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+		now_time = datetime.now().strftime('%Y-%m-%d_%H%M%S')
 		epoch = timestamp_to_epoch(now_time)
 		username = user.get()
 		if username == "username":

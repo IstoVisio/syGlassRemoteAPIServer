@@ -6,46 +6,52 @@ import os
 import subprocess
 import requests
 import io
+import shutil
+import time
 
 import pyglass
 
-def from_tarfile(path_or_bytes):
-    tf = tarfile.TarFile(fileobj=io.BytesIO(path_or_bytes))
-    
-    # As a convenience, we sort the members by name before loading them.
-    # This ensures that tarball storage order doesn't affect vertex order.
-    members = sorted(tf.getmembers(), key=lambda m: m.name)
 
-    meshes = {}
-    for member in members:
-        ext = member.name[-4:]
-        # Skip non-mesh files and empty files
-        if ext in ('.drc', '.obj', '.ngmesh') and member.size > 0:
-        	buf = tf.extractfile(member).read()
-        	if len(buf) == 0:
-        		continue
-        	with open(member.name, "wb") as ff:
-        		ff.write(buf)
-        	#add subprocess to convert draco to obj cmd: draco_decoder
-        	#if len(buf)
-        	s = ['draco_decoder']
-        	subprocess.call(draco_decoder)
+def from_tarfile(path_or_bytes, bodyID, name):
+	tf = tarfile.TarFile(fileobj=io.BytesIO(path_or_bytes))
+	members = sorted(tf.getmembers(), key=lambda m: m.name)
+
+	meshpathlist = []
+	new_path = 'C:\\VR_meshes\\'+ str(bodyID)
+	if not os.path.exists(new_path):
+		os.makedirs(new_path)
+	for member in members:
+		ext = member.name[-4:]
+		# Skip non-mesh files and empty files
+		if ext in ('.drc', '.obj', '.ngmesh') and member.size > 0:
+			buf = tf.extractfile(member).read()
+			#if len(buf) == 0:
+			#	continue
+			with open(new_path + "\\" + member.name, "wb") as ff:
+				ff.write(buf)
+			#add subprocess to convert draco to obj cmd: draco_decoder
+			#if len(buf)
+			s = "C:\\Users\\smithc\\AppData\\Local\\Continuum\\miniconda3\\Library\\bin\\draco_decoder.exe -i " + new_path + "\\" + member.name + " -o " + new_path + "\\" + member.name[:-3] + "obj"
+			#print(s)
+			FNULL = open(os.devnull, 'w')
+			subprocess.call(s, stdout=FNULL, stderr=subprocess.STDOUT)
+			meshpathlist.append(new_path + "\\" + member.name[:-3] + "obj")
+	return meshpathlist
 
 def copyEmpty(name):
 	emptyProject = "emptyProject\\emptyProject.syg"
 	emptyProjectMeta = "emptyProject\\emptyProject.sym"
-	if not os.path.exists("output/" + name):
-		os.mkdir("output/" + name)
+	if not os.path.exists("output\\" + name):
+		os.mkdir("output\\" + name)
 	shutil.copy(emptyProject, "output/" + name + "/" + name + ".syg")
 	shutil.copy(emptyProjectMeta, "output/" + name + "/" + name + ".sym")
 
-def convertMeshes(path):
-	name = ntpath.basename(path)
+def convertMeshes(path, name):
 	copyEmpty(name)
 	projectPath = os.path.join(os.getcwd(), "output\\" + name + "\\" + name + ".syg")
 	print(projectPath)
 	project = pyglass.OpenProject(pyglass.path(projectPath))
-	l = glob.glob(path + "\\*.obj")
+	l = path
 	project.ImportMeshOBJs("default", "\n".join(l))
 	while project.GetMeshIOPercentage() != 100:
 		print("Progress: " + str(project.GetMeshIOPercentage()) + "%")
@@ -104,21 +110,17 @@ def update_item(item: meshAndDVIDRequest):
 	port = item.port
 	segmentation = item.segmentation
 
-	name = "Body#:" + str(len(item.body_list)) + "_" + item.user + "_" + item.time
+	name = "Bodies" + str(len(item.body_list)).strip() + "_" + item.user.strip() + "_" + item.time
+
+	meshPathList = []
 
 	for bodyID in body_id:
-		sv_map = "http://"+str(server)+":"+str(port)+"/api/node/"+str(uuid)+"/"+str(segmentation)+"/supervoxels/"+str(bodyID)
+		sv_map = "http://"+str(server)+":"+str(port)+"/api/node/"+str(uuid)+"/segmentation_sv_meshes/tarfile/"+str(bodyID)
 		print(sv_map)
 		map_response = requests.get(sv_map)
-		print(map_response.content)
-		supervoxels = map_response.content.decode('UTF-8')
-		supervoxels = supervoxels[1:-1].split(',')
-		supervoxels = [int(x) for x in supervoxels]
-		for each in supervoxels:
-			#get all the supervoxels 
-		new_path = 'C:\\VR_meshes\\'+ bodyID
-		if not os.path.exists(new_path):
-			os.makedirs(new_path)
+		newMeshPathList = from_tarfile(map_response.content, bodyID, name)
+		meshPathList = meshPathList + newMeshPathList
+	convertMeshes(meshPathList, name)
 
 	
 	return item
