@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
+import ntpath
 import tarfile
 import os
 import subprocess
@@ -46,22 +47,31 @@ def copyEmpty(name):
 	shutil.copy(emptyProject, "output/" + name + "/" + name + ".syg")
 	shutil.copy(emptyProjectMeta, "output/" + name + "/" + name + ".sym")
 
-def convertMeshes(path, name):
+def addMeshes(path, name, bodyList):
 	copyEmpty(name)
+	print(path)
 	projectPath = os.path.join(os.getcwd(), "output\\" + name + "\\" + name + ".syg")
 	print(projectPath)
 	project = pyglass.OpenProject(pyglass.path(projectPath))
 	l = path
 	project.ImportMeshOBJs("default", "\n".join(l))
+	for each in bodyList:
+		project.CreateTag("default", str(each))
 	while project.GetMeshIOPercentage() != 100:
 		print("Progress: " + str(project.GetMeshIOPercentage()) + "%")
 		print("Current mesh: "  + project.GetMeshIOName() + "\n")
 		time.sleep(2)
+	for ii, id in enumerate(bodyList):
+		nameMesh = ntpath.basename(path[ii])
+		project.AddTagToMesh("default", str(id), nameMesh)
+	
 	vl = pyglass.VolumeLibrary()
 	vl.ReloadLibrary()
 	entry = vl.CreateEntryFromPath(projectPath, name)
 	vl.PutEntry(entry)
 	project.RandomizeMeshColors()
+	
+	print("Project Ready!")
 
 
 # ------------------------------------------------------ #
@@ -113,14 +123,18 @@ def update_item(item: meshAndDVIDRequest):
 	name = "Bodies" + str(len(item.body_list)).strip() + "_" + item.user.strip() + "_" + item.time
 
 	meshPathList = []
+	bodyList = []
 
 	for bodyID in body_id:
 		sv_map = "http://"+str(server)+":"+str(port)+"/api/node/"+str(uuid)+"/segmentation_sv_meshes/tarfile/"+str(bodyID)
 		print(sv_map)
 		map_response = requests.get(sv_map)
 		newMeshPathList = from_tarfile(map_response.content, bodyID, name)
+		tempBodyList = [bodyID] * len(newMeshPathList)
 		meshPathList = meshPathList + newMeshPathList
-	convertMeshes(meshPathList, name)
+		bodyList = bodyList + tempBodyList
+		
+	addMeshes(meshPathList, name, bodyList)
 
 	
 	return item
