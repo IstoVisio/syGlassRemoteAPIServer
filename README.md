@@ -21,3 +21,7 @@ Run the server with:
 uvicorn server:app --reload
 
 then visit  http://127.0.0.1:8000/
+
+or for running the server in production:
+
+uvicorn server:app --reload --host=0.0.0.0  

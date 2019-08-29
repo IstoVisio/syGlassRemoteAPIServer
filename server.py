@@ -10,34 +10,51 @@ import io
 import shutil
 import time
 
-import pyglass
+import syglass
+DRACO_DEC_PATH = "C:\\Users\\smithc\\AppData\\Local\\Continuum\\miniconda3\\Library\\bin\\draco_decoder.exe"
 
-
-def from_tarfile(path_or_bytes, bodyID, name):
+def from_tarfile(path_or_bytes, body_id, name):
 	tf = tarfile.TarFile(fileobj=io.BytesIO(path_or_bytes))
 	members = sorted(tf.getmembers(), key=lambda m: m.name)
 
 	meshpathlist = []
-	new_path = 'C:\\VR_meshes\\'+ str(bodyID)
+	new_path = 'C:\\VR_meshes\\{body_id}'
+		
 	if not os.path.exists(new_path):
 		os.makedirs(new_path)
+
 	for member in members:
-		ext = member.name[-4:]
+		ext = os.path.splitext(member.name)[1]
+		
 		# Skip non-mesh files and empty files
-		if ext in ('.drc', '.obj', '.ngmesh') and member.size > 0:
-			buf = tf.extractfile(member).read()
-			#if len(buf) == 0:
-			#	continue
-			with open(new_path + "\\" + member.name, "wb") as ff:
-				ff.write(buf)
-			#add subprocess to convert draco to obj cmd: draco_decoder
-			#if len(buf)
-			s = "C:\\Users\\smithc\\AppData\\Local\\Continuum\\miniconda3\\Library\\bin\\draco_decoder.exe -i " + new_path + "\\" + member.name + " -o " + new_path + "\\" + member.name[:-3] + "obj"
-			#print(s)
-			FNULL = open(os.devnull, 'w')
-			subprocess.call(s, stdout=FNULL, stderr=subprocess.STDOUT)
-			meshpathlist.append(new_path + "\\" + member.name[:-3] + "obj")
+		if ext not in ('.drc', '.obj') or member.size == 0:
+			print(f"Skipping invalid file {member}.")
+			continue
+		
+		file_path = new_path + "\\" + member.name
+		buf = tf.extractfile(member).read()
+
+		with open(file_path, "wb") as ff:
+			ff.write(buf)
+		
+		# Convert any drc we accepted to obj
+		if ext == '.drc':
+			obj_path = file_path[:-3] + "obj"
+
+			# add subprocess to convert draco to obj cmd: draco_decoder
+			subprocess.run([
+				DRACO_DEC_PATH,
+				"-i",
+				file_path,
+				"-o",
+				obj_path,
+			])
+			file_path = obj_path
+
+		meshpathlist.append(file_path)
+
 	return meshpathlist
+
 
 def copyEmpty(name):
 	emptyProject = "emptyProject\\emptyProject.syg"
@@ -46,6 +63,7 @@ def copyEmpty(name):
 		os.mkdir("output\\" + name)
 	shutil.copy(emptyProject, "output/" + name + "/" + name + ".syg")
 	shutil.copy(emptyProjectMeta, "output/" + name + "/" + name + ".sym")
+
 
 def addMeshes(path, name, bodyList):
 	copyEmpty(name)
@@ -72,7 +90,6 @@ def addMeshes(path, name, bodyList):
 	project.RandomizeMeshColors()
 	
 	print("Project Ready!")
-
 
 # ------------------------------------------------------ #
 
@@ -109,32 +126,32 @@ def update_item(item: meshRequest):
 	#make into meshes
 	return item
 
+
 @app.post("/dvidRequest/")
-def update_item(item: meshAndDVIDRequest):
+def update_dvid_item(item: meshAndDVIDRequest):
 	print(item)
 
 	server = item.dvid
 	uuid = item.uuid
-	instance = 'segmentation_sv_meshes'
-	body_id = item.body_list
 	port = item.port
 	segmentation = item.segmentation
+	body_length = len(item.body_list)
 
-	name = "Bodies" + str(len(item.body_list)).strip() + "_" + item.user.strip() + "_" + item.time
+	name = f"Bodies{body_length}_{item.user.strip()}_{item.time}"
 
 	meshPathList = []
 	bodyList = []
-
-	for bodyID in body_id:
-		sv_map = "http://"+str(server)+":"+str(port)+"/api/node/"+str(uuid)+"/segmentation_sv_meshes/tarfile/"+str(bodyID)
+	sv_map_base = f"http://{server}:{port}/api/node/{uuid}/segmentation_sv_meshes/tarfile/"
+	
+	for body_id in item.body_list:
+		sv_map = sv_map_base + str(body_id)
 		print(sv_map)
+		print(f"Requesting meshes (Body id: {body_id}) from server")
 		map_response = requests.get(sv_map)
 		newMeshPathList = from_tarfile(map_response.content, bodyID, name)
 		tempBodyList = [bodyID] * len(newMeshPathList)
 		meshPathList = meshPathList + newMeshPathList
 		bodyList = bodyList + tempBodyList
-		
 	addMeshes(meshPathList, name, bodyList)
-
 	
 	return item
